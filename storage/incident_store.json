@@ -1,1 +1,380 @@
-[]
+[
+  {
+    "incident_id": "inc_e19dc556",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "customer needs help at aisle 4",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1000,
+        "speaker": "associate_2",
+        "message": "customer needs help at aisle 4"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_9407eadc",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "did anyone restock the front shelves yet?",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1002,
+        "speaker": "associate_3",
+        "message": "did anyone restock the front shelves yet?"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_96bd6b26",
+    "incident_type": "locked_cabinet_issue",
+    "severity": "medium",
+    "summary": "The locked cabinet in aisle 4 is still not opening.",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1004,
+        "speaker": "associate_5",
+        "message": "the locked cabinet still wont open in aisle 4"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_d074b0c2",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "hey i got the cabinet open now",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1015,
+        "speaker": "associate_4",
+        "message": "hey i got the cabinet open now"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_f4096d53",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "who ate my food",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1778386131,
+        "speaker": "worker_1",
+        "message": "who ate my food"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_a8af3faa",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "hello world",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "c",
+        "timestamp": 10,
+        "speaker": "w",
+        "message": "hello world"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_08bb50e0",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "hello world",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "c",
+        "timestamp": 10,
+        "speaker": "w",
+        "message": "hello world"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_0c527a6d",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "customer needs help at aisle 4",
+    "status": "active",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1000,
+        "speaker": "associate_2",
+        "message": "customer needs help at aisle 4"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_a81b030d",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "the aisle 4 customer is fine now",
+    "status": "active",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1000,
+        "speaker": "associate_2",
+        "message": "the aisle 4 customer is fine now"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_4bc381e8",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "anyone else think the new uniforms are kinda uncomfortable",
+    "status": "active",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1020,
+        "speaker": "associate_9",
+        "message": "anyone else think the new uniforms are kinda uncomfortable"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_c5ff1694",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "did anyone restock the front shelves yet?",
+    "status": "active",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1002,
+        "speaker": "associate_3",
+        "message": "did anyone restock the front shelves yet?"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  },
+  {
+    "incident_id": "inc_34cf02ff",
+    "incident_type": "operational_event",
+    "severity": "medium",
+    "summary": "the locked cabinet still wont open in aisle 4 [Resolved in field: associate_4 @ t=1015: hey i got the cabinet open now]",
+    "status": "resolved",
+    "messages": [
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1004,
+        "speaker": "associate_5",
+        "message": "the locked cabinet still wont open in aisle 4"
+      },
+      {
+        "channel": "retail_store_4",
+        "timestamp": 1015,
+        "speaker": "associate_4",
+        "message": "hey i got the cabinet open now"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ]
+  }
+]

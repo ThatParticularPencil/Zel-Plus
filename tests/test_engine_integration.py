@@ -21,12 +21,12 @@ def test_pipeline_two_messages_one_incident(
     from app.main import IncidentEngine
 
     eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
-    raw = {"channel": "store_1", "timestamp": 10, "speaker": "w1", "message": "issue at aisle 2"}
+    raw = {"channel": "store_1", "timestamp": 10, "speaker": "w1", "message": "customer waiting at register 3"}
     r1 = eng.process_pipeline(raw)
     assert r1["processed"]["intent"] == "report"
     assert len(r1["incidents"]) == 0
 
-    raw2 = {"channel": "store_1", "timestamp": 50, "speaker": "w2", "message": "still there"}
+    raw2 = {"channel": "store_1", "timestamp": 50, "speaker": "w2", "message": "still backed up at register 3"}
     r2 = eng.process_pipeline(raw2)
     assert len(r2["incidents"]) == 1
     inc = r2["incidents"][0]["incident"]
@@ -47,10 +47,22 @@ def test_emit_min_four_requires_four_messages(
     eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
     base = {"channel": "s", "speaker": "w", "message": "x"}
     for i, ts in enumerate([100, 150, 200], start=1):
-        out = eng.process_pipeline({**base, "timestamp": ts, "message": f"m{i}"})
+        out = eng.process_pipeline(
+            {
+                **base,
+                "timestamp": ts,
+                "message": f"freezer alarm on aisle 5 case {i} still acting up",
+            }
+        )
         assert len(out["incidents"]) == 0
 
-    out4 = eng.process_pipeline({**base, "timestamp": 250, "message": "m4"})
+    out4 = eng.process_pipeline(
+        {
+            **base,
+            "timestamp": 250,
+            "message": "freezer alarm aisle 5 now stable after reset",
+        }
+    )
     assert len(out4["incidents"]) == 1
     assert len(out4["incidents"][0]["incident"]["messages"]) == 4
 

@@ -67,6 +67,24 @@ class IncidentStore:
                 break
         self._write(rows)
 
+    def find_latest_active_for_channel(self, channel: str) -> Optional[Dict[str, Any]]:
+        for r in reversed(self._read()):
+            if r.get("status") != "active":
+                continue
+            for m in r.get("messages") or []:
+                if isinstance(m, dict) and m.get("channel") == channel:
+                    return r
+        return None
+
+    def replace_incident(self, incident: Incident) -> None:
+        rows = self._read()
+        for i, r in enumerate(rows):
+            if r.get("incident_id") == incident.incident_id:
+                rows[i] = incident.model_dump()
+                self._write(rows)
+                return
+        raise KeyError(incident.incident_id)
+
     def find_by_id(self, incident_id: str) -> Optional[Dict[str, Any]]:
         for r in reversed(self._read()):
             if r.get("incident_id") == incident_id:

@@ -41,6 +41,9 @@ export function InjectBar({
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
       setMessage('')
       onSent()
+      window.setTimeout(onSent, 80)
+      window.setTimeout(onSent, 400)
+      window.setTimeout(onSent, 1500)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'send failed')
     } finally {

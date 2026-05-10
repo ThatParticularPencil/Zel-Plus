@@ -10,7 +10,11 @@ def test_dashboard_state_shape() -> None:
     r = client.get("/dashboard/state")
     assert r.status_code == 200
     data = r.json()
-    assert data == {"messages": [], "incidents": []}
+    assert data["messages"] == []
+    assert data["semantic"] == []
+    assert data["incidents"] == []
+    assert data["cluster_preview"] == []
+    assert data["emit_jobs_pending"] == 0
 
 
 def test_ingest_then_dashboard_feed() -> None:

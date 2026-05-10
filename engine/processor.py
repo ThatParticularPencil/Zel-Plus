@@ -10,8 +10,9 @@ from services.llm_client import LLMClient
 PROCESS_SYSTEM = """You extract structured fields from a single operational frontline message.
 Return ONLY a JSON object with keys: intent, urgency, topic, entities.
 intent must be one of: request, report, update, none, noise.
+Use intent "update" when the speaker is confirming progress, a fix, or that something now works.
 urgency must be one of: low, medium, high.
-topic is a short snake_case or plain phrase describing the subject.
+topic must be a short stable snake_case slug tied to the physical situation (e.g. cabinet_aisle_4, dock_3_spill), not generic words like "message" or "issue".
 entities is a JSON array of short strings (people, places, objects).
 If the message is ambiguous or not actionable, set intent to "noise".
 No markdown, no explanation, no extra keys."""
