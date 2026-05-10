@@ -9,7 +9,7 @@ import httpx
 
 
 class LLMClient:
-    """OpenAI or Anthropic chat completions with JSON-first helpers."""
+    """OpenAI, Anthropic, or Google Gemini (Generative Language API) with JSON-first helpers."""
 
     def __init__(
         self,
@@ -18,15 +18,18 @@ class LLMClient:
         model: Optional[str] = None,
         timeout_s: float = 120.0,
     ) -> None:
-        self.provider = (provider or os.getenv("IIE_LLM_PROVIDER") or "openai").lower()
+        self.provider = (provider or os.getenv("IIE_LLM_PROVIDER") or "gemini").lower()
         self.openai_key = os.getenv("OPENAI_API_KEY")
         self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        self.gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self.model = model or os.getenv("IIE_LLM_MODEL") or self._default_model()
         self.timeout_s = timeout_s
 
     def _default_model(self) -> str:
         if self.provider == "anthropic":
             return "claude-3-5-sonnet-20241022"
+        if self.provider == "gemini":
+            return "gemini-2.5-flash-lite"
         return "gpt-4o-mini"
 
     def complete_text(self, system: str, user: str) -> str:
@@ -52,6 +55,8 @@ class LLMClient:
     def _complete_raw(self, system: str, user: str, *, force_json: bool) -> str:
         if self.provider == "anthropic":
             return self._anthropic(system, user)
+        if self.provider == "gemini":
+            return self._gemini(system, user, force_json=force_json)
         return self._openai(system, user, force_json=force_json)
 
     def _openai(self, system: str, user: str, *, force_json: bool) -> str:
@@ -97,6 +102,30 @@ class LLMClient:
             data = r.json()
         parts = data.get("content") or []
         texts = [p.get("text", "") for p in parts if p.get("type") == "text"]
+        return "".join(texts)
+
+    def _gemini(self, system: str, user: str, *, force_json: bool) -> str:
+        if not self.gemini_key:
+            raise RuntimeError("GEMINI_API_KEY or GOOGLE_API_KEY not set for Gemini provider")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        gen_cfg: Dict[str, Any] = {"temperature": 0.2}
+        if force_json:
+            gen_cfg["responseMimeType"] = "application/json"
+        body: Dict[str, Any] = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"parts": [{"text": user}]}],
+            "generationConfig": gen_cfg,
+        }
+        with httpx.Client(timeout=self.timeout_s) as client:
+            r = client.post(url, params={"key": self.gemini_key}, json=body)
+            r.raise_for_status()
+            data = r.json()
+        cands = data.get("candidates") or []
+        if not cands:
+            err = data.get("error", {}).get("message") if isinstance(data.get("error"), dict) else None
+            raise RuntimeError(err or "Gemini returned no candidates (blocked or empty response)")
+        parts = (cands[0].get("content") or {}).get("parts") or []
+        texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
         return "".join(texts)
 
     @staticmethod

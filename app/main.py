@@ -41,10 +41,12 @@ def _emit_min_messages() -> int:
 def _make_llm() -> Optional[LLMClient]:
     if os.getenv("IIE_OFFLINE", "").lower() in ("1", "true", "yes"):
         return None
-    prov = (os.getenv("IIE_LLM_PROVIDER") or "openai").lower()
+    prov = (os.getenv("IIE_LLM_PROVIDER") or "gemini").lower()
     if prov == "openai" and not os.getenv("OPENAI_API_KEY"):
         return None
     if prov == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+        return None
+    if prov == "gemini" and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         return None
     return LLMClient()
 
@@ -295,9 +297,14 @@ class IngestBody(BaseModel):
 
 def create_app():
     from fastapi import FastAPI
+    from fastapi.responses import RedirectResponse
 
     app = FastAPI(title="Incident Intelligence Engine", version="0.1.0")
     engine = IncidentEngine()
+
+    @app.get("/")
+    def root():
+        return RedirectResponse(url="/docs", status_code=307)
 
     @app.post("/ingest")
     def ingest(body: IngestBody):
@@ -318,15 +325,52 @@ def create_app():
 app = create_app()
 
 
+def _browser_open_url(host: str, port: int, path: str = "/docs") -> str:
+    """Host string suitable for opening in a browser (avoid bind-only addresses)."""
+    if host in ("0.0.0.0", "::", "[::]"):
+        display_host = "127.0.0.1"
+    else:
+        display_host = host
+    return f"http://{display_host}:{port}{path}"
+
+
+def _notify_serve_urls(host: str, port: int, *, open_browser: bool) -> None:
+    docs = _browser_open_url(host, port, "/docs")
+    redoc = _browser_open_url(host, port, "/redoc")
+    root = _browser_open_url(host, port, "/")
+    print("\n  Incident Intelligence Engine — API\n")
+    print(f"    Interactive docs:  {docs}")
+    print(f"    ReDoc:             {redoc}")
+    print(f"    Root (→ /docs):    {root}")
+    print("\n  Tip: Cmd+click (Mac) or Ctrl+click (Windows/Linux) the http:// link above.\n")
+    if open_browser:
+        import threading
+        import time
+        import webbrowser
+
+        def _open() -> None:
+            time.sleep(0.8)
+            webbrowser.open(docs)
+
+        threading.Thread(target=_open, daemon=True).start()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Incident Intelligence Engine")
     parser.add_argument("mode", choices=["demo", "serve"], nargs="?", default="demo")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument(
+        "--open",
+        "-o",
+        action="store_true",
+        help="Open /docs in the default browser (serve mode only)",
+    )
     args = parser.parse_args()
     if args.mode == "serve":
         import uvicorn
 
+        _notify_serve_urls(args.host, args.port, open_browser=args.open)
         uvicorn.run("app.main:app", host=args.host, port=args.port, reload=False)
     else:
         run_demo_cli()
