@@ -41,11 +41,11 @@ def is_likely_resolution_message(text: str) -> bool:
 
 
 def should_attempt_resolution_routing(processed: ProcessedMessage, message: str) -> bool:
-    if processed.intent == "noise":
+    if processed.event_type == "noise":
         return False
-    if processed.intent == "update":
+    if processed.event_type == "update":
         return is_likely_resolution_message(message)
-    if processed.intent in ("report", "none"):
+    if processed.event_type in ("report", "request"):
         return is_likely_resolution_message(message)
     return False
 

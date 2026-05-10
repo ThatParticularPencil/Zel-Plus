@@ -12,7 +12,7 @@ def test_is_likely_resolution_message() -> None:
 
 
 def test_should_attempt_with_report_intent_if_text_resolves() -> None:
-    p = ProcessedMessage(intent="report", urgency="medium", topic="t", entities=[])
+    p = ProcessedMessage(event_type="report", urgency="medium", topic="t", entities=[])
     assert should_attempt_resolution_routing(p, "got it open now")
 
 
@@ -27,10 +27,13 @@ def test_resolution_closes_active_incident(tmp_path: Path) -> None:
         severity="medium",
         summary="Cabinet stuck",
         status="active",
+        entities=[],
         messages=[m0],
         tasks=[Task(action="dispatch", priority="medium", parameters={}).model_dump()],
+        created_at=1,
+        updated_at=1,
     )
-    eng.incident_store.append(inc)
+    eng.router._persist_incident(inc)
 
     buf = eng.ingest_message(
         {
@@ -40,10 +43,10 @@ def test_resolution_closes_active_incident(tmp_path: Path) -> None:
             "message": "cabinet is open now, all good",
         }
     )
-    proc = ProcessedMessage(intent="update", urgency="low", topic="cabinet", entities=[])
-    out = eng._maybe_route_resolution(buf, proc, "retail_store_4")
-    assert out is not None
-    assert out.get("resolution_applied") == "inc_test_active"
+    proc = ProcessedMessage(event_type="resolution", urgency="low", topic="cabinet", entities=[])
+    routed = eng.router.route_message(buf.message, proc)
+    assert routed is not None
+    assert routed.incident_id == "inc_test_active"
     row = eng.incident_store.find_by_id("inc_test_active")
     assert row is not None
     assert row["status"] == "resolved"

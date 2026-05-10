@@ -31,7 +31,7 @@ def build_incident_llm(
         "processed": [
             {
                 "internal_id": b.internal_id,
-                "intent": b.processed.intent,
+                "event_type": b.processed.event_type,
                 "urgency": b.processed.urgency,
                 "topic": b.processed.topic,
                 "entities": b.processed.entities,

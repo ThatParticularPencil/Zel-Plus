@@ -88,7 +88,7 @@ def cluster_messages(
     for b in channel_messages:
         if b.processed is None:
             continue
-        if b.processed.intent == "noise":
+        if b.processed.event_type == "noise":
             continue
         active.append(b)
     if not active:

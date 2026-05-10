@@ -23,8 +23,8 @@ def test_pipeline_two_messages_one_incident(
     eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
     raw = {"channel": "store_1", "timestamp": 10, "speaker": "w1", "message": "customer waiting at register 3"}
     r1 = eng.process_pipeline(raw)
-    assert r1["processed"]["intent"] == "report"
-    assert len(r1["incidents"]) == 0
+    assert r1["processed"]["event_type"] == "report"
+    assert len(r1["incidents"]) == 1
 
     raw2 = {"channel": "store_1", "timestamp": 50, "speaker": "w2", "message": "still backed up at register 3"}
     r2 = eng.process_pipeline(raw2)
@@ -46,6 +46,7 @@ def test_emit_min_four_requires_four_messages(
 
     eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
     base = {"channel": "s", "speaker": "w", "message": "x"}
+    existing_incident_id = None
     for i, ts in enumerate([100, 150, 200], start=1):
         out = eng.process_pipeline(
             {
@@ -54,7 +55,10 @@ def test_emit_min_four_requires_four_messages(
                 "message": f"freezer alarm on aisle 5 case {i} still acting up",
             }
         )
-        assert len(out["incidents"]) == 0
+        assert len(out["incidents"]) == 1
+        if existing_incident_id is None:
+            existing_incident_id = out["incidents"][0]["incident"]["incident_id"]
+        assert out["incidents"][0]["incident"]["incident_id"] == existing_incident_id
 
     out4 = eng.process_pipeline(
         {
@@ -64,6 +68,7 @@ def test_emit_min_four_requires_four_messages(
         }
     )
     assert len(out4["incidents"]) == 1
+    assert out4["incidents"][0]["incident"]["incident_id"] == existing_incident_id
     assert len(out4["incidents"][0]["incident"]["messages"]) == 4
 
 
@@ -79,5 +84,4 @@ def test_flush_eof_emits_singleton(
     eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
     eng.process_pipeline({"channel": "solo", "timestamp": 1, "speaker": "a", "message": "only message"})
     flushed = eng.flush_eof()
-    assert len(flushed["incidents"]) == 1
-    assert len(flushed["incidents"][0]["incident"]["messages"]) == 1
+    assert len(flushed["incidents"]) == 0

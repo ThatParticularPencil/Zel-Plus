@@ -25,7 +25,7 @@ def _buf(
             message=text,
         ),
         processed=ProcessedMessage(
-            intent=intent,
+            event_type=intent,
             urgency="medium",
             topic=topic,
             entities=[],

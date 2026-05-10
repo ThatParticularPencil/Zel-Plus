@@ -13,7 +13,7 @@ class Message(BaseModel):
 
 
 class ProcessedMessage(BaseModel):
-    intent: str
+    event_type: str
     urgency: str  # low | medium | high
     topic: str
     entities: list[str]
@@ -31,8 +31,11 @@ class Incident(BaseModel):
     severity: str
     summary: str
     status: str  # active | resolved
+    entities: list[str] = []
     messages: list[Message]
     tasks: list[dict]
+    created_at: int = 0
+    updated_at: int = 0
 
 
 class MemoryEntry(BaseModel):
