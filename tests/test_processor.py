@@ -28,3 +28,4 @@ def test_process_message_llm_offline_uses_fallback() -> None:
     p = process_message_llm(None, m)
     assert p.event_type == "report"
     assert p.urgency == "medium"
+    assert p.raw_response == {"fallback": True, "reason": "offline"}

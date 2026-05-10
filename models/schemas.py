@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,7 @@ class ProcessedMessage(BaseModel):
     urgency: str  # low | medium | high
     topic: str
     entities: list[str]
+    raw_response: Optional[dict[str, Any]] = None
 
 
 class Task(BaseModel):
@@ -30,7 +31,7 @@ class Incident(BaseModel):
     incident_type: str
     severity: str
     summary: str
-    status: str  # active | resolved
+    status: str  # active | in_progress | resolved
     entities: list[str] = []
     messages: list[Message]
     tasks: list[dict]

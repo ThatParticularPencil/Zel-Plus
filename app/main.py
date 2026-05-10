@@ -91,7 +91,10 @@ class IncidentEngine:
         *,
         auto_resolve: Optional[bool] = None,
     ) -> None:
-        self.storage_dir = storage_dir or _storage_dir()
+        if storage_dir is None:
+            self.storage_dir = _storage_dir()
+        else:
+            self.storage_dir = Path(storage_dir)
         if auto_resolve is None:
             auto_resolve = os.getenv("IIE_AUTO_RESOLVE", "false").lower() in ("1", "true", "yes")
         self.auto_resolve = auto_resolve
@@ -100,7 +103,7 @@ class IncidentEngine:
         self.ingestor = MessageIngestor()
         self.memory_store = MemoryStore(self.storage_dir / "memory_store.json")
         self.incident_store = IncidentStore(self.storage_dir / "incident_store.json")
-        self.router = IncidentRouter(self.incident_store, self.llm)
+        self.router = IncidentRouter(self.incident_store, self.llm, self.embedder)
         self._dashboard_messages: list[dict[str, Any]] = []
         self._dashboard_incidents: list[dict[str, Any]] = []
         self._semantic_feed: list[dict[str, Any]] = []
@@ -109,38 +112,40 @@ class IncidentEngine:
         self._pipeline_lock = threading.Lock()
 
     def _record_semantic(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
-        self._semantic_feed.append(
-            {
-                "id": str(uuid.uuid4()),
-                "timestamp": buf.message.timestamp,
-                "channel": buf.message.channel,
-                "speaker": buf.message.speaker,
-                "message": buf.message.message,
-                "event_type": processed.event_type,
-                "intent": processed.event_type,
-                "urgency": processed.urgency,
-                "topic": processed.topic,
-                "entities": list(processed.entities),
-            }
-        )
+        record = {
+            "id": str(uuid.uuid4()),
+            "timestamp": buf.message.timestamp,
+            "channel": buf.message.channel,
+            "speaker": buf.message.speaker,
+            "message": buf.message.message,
+            "event_type": processed.event_type,
+            "intent": processed.event_type,
+            "urgency": processed.urgency,
+            "topic": processed.topic,
+            "entities": list(processed.entities),
+        }
+        if processed.raw_response is not None:
+            record["raw_response"] = processed.raw_response
+        self._semantic_feed.append(record)
         if len(self._semantic_feed) > 400:
             self._semantic_feed = self._semantic_feed[-400:]
 
     def _record_dashboard_message(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
-        self._dashboard_messages.append(
-            {
-                "id": str(uuid.uuid4()),
-                "timestamp": buf.message.timestamp,
-                "channel": buf.message.channel,
-                "speaker": buf.message.speaker,
-                "message": buf.message.message,
-                "urgency": processed.urgency,
-                "event_type": processed.event_type,
-                "intent": processed.event_type,
-                "topic": processed.topic,
-                "entities": list(processed.entities),
-            }
-        )
+        record = {
+            "id": str(uuid.uuid4()),
+            "timestamp": buf.message.timestamp,
+            "channel": buf.message.channel,
+            "speaker": buf.message.speaker,
+            "message": buf.message.message,
+            "urgency": processed.urgency,
+            "event_type": processed.event_type,
+            "intent": processed.event_type,
+            "topic": processed.topic,
+            "entities": list(processed.entities),
+        }
+        if processed.raw_response is not None:
+            record["raw_response"] = processed.raw_response
+        self._dashboard_messages.append(record)
         if len(self._dashboard_messages) > 400:
             self._dashboard_messages = self._dashboard_messages[-400:]
 

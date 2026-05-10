@@ -1,380 +1,91 @@
 [
   {
-    "incident_id": "inc_e19dc556",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "customer needs help at aisle 4",
+    "incident_id": "e9db0df9-89f8-4213-aece-3105c8ecceed",
+    "incident_type": "dock_2_maintenance_dispatch",
+    "severity": "high",
+    "summary": "A high-severity forklift hydraulic leak at dock 2 has blocked the loading lane, halting all pallet movement. A technician has been dispatched, dock 2 operations notified, and the event logged. Planned tasks include escalating to the operations manager if the blockage persists, notifying the logistics team about potential shipment schedule impacts, and resolving the incident once the loading lane is clear. [Resolved in field: worker_6 @ t=1022: hydraulic leak contained and loading lane reopened] [Resolved in field: worker_2 @ t=1026: dock 2 forklift issue resolved now]",
     "status": "resolved",
+    "entities": [
+      "dock 2",
+      "forklift",
+      "loading lane",
+      "maintenance team",
+      "pallet"
+    ],
     "messages": [
       {
-        "channel": "retail_store_4",
+        "channel": "warehouse_ops",
         "timestamp": 1000,
-        "speaker": "associate_2",
-        "message": "customer needs help at aisle 4"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
+        "speaker": "worker_3",
+        "message": "forklift stopped near dock 2"
       },
       {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_9407eadc",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "did anyone restock the front shelves yet?",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1002,
-        "speaker": "associate_3",
-        "message": "did anyone restock the front shelves yet?"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
+        "channel": "warehouse_ops",
+        "timestamp": 1000,
+        "speaker": "worker_3",
+        "message": "forklift stopped near dock 2"
       },
       {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_96bd6b26",
-    "incident_type": "locked_cabinet_issue",
-    "severity": "medium",
-    "summary": "The locked cabinet in aisle 4 is still not opening.",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1004,
-        "speaker": "associate_5",
-        "message": "the locked cabinet still wont open in aisle 4"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
+        "channel": "warehouse_ops",
+        "timestamp": 1003,
+        "speaker": "worker_7",
+        "message": "loading lane is getting blocked at dock 2"
       },
       {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
+        "channel": "warehouse_ops",
+        "timestamp": 1008,
+        "speaker": "supervisor_1",
+        "message": "all pallet movement near dock 2 has stopped"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1012,
+        "speaker": "worker_9",
+        "message": "possible hydraulic leak under the forklift"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1018,
+        "speaker": "safety_lead_1",
+        "message": "maintenance team dispatched to dock 2"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1022,
+        "speaker": "worker_6",
+        "message": "hydraulic leak contained and loading lane reopened"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1026,
+        "speaker": "worker_2",
+        "message": "dock 2 forklift issue resolved now"
       }
-    ]
+    ],
+    "tasks": [],
+    "created_at": 1000,
+    "updated_at": 1026
   },
   {
-    "incident_id": "inc_d074b0c2",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "hey i got the cabinet open now",
-    "status": "resolved",
+    "incident_id": "2fdc6f24-b2f2-4547-a76c-24f8ab5825aa",
+    "incident_type": "break_room_coffee_machine",
+    "severity": "low",
+    "summary": "The break room coffee machine remains inoperative, a low severity incident that is currently active. No specific tasks have been assigned for resolution at this time.",
+    "status": "active",
+    "entities": [
+      "break room",
+      "coffee machine"
+    ],
     "messages": [
       {
-        "channel": "retail_store_4",
+        "channel": "warehouse_ops",
         "timestamp": 1015,
-        "speaker": "associate_4",
-        "message": "hey i got the cabinet open now"
+        "speaker": "worker_4",
+        "message": "break room coffee machine is still broken lol"
       }
     ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_f4096d53",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "who ate my food",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1778386131,
-        "speaker": "worker_1",
-        "message": "who ate my food"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_a8af3faa",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "hello world",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "c",
-        "timestamp": 10,
-        "speaker": "w",
-        "message": "hello world"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_08bb50e0",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "hello world",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "c",
-        "timestamp": 10,
-        "speaker": "w",
-        "message": "hello world"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_0c527a6d",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "customer needs help at aisle 4",
-    "status": "active",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1000,
-        "speaker": "associate_2",
-        "message": "customer needs help at aisle 4"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_a81b030d",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "the aisle 4 customer is fine now",
-    "status": "active",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1000,
-        "speaker": "associate_2",
-        "message": "the aisle 4 customer is fine now"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_4bc381e8",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "anyone else think the new uniforms are kinda uncomfortable",
-    "status": "active",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1020,
-        "speaker": "associate_9",
-        "message": "anyone else think the new uniforms are kinda uncomfortable"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_c5ff1694",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "did anyone restock the front shelves yet?",
-    "status": "active",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1002,
-        "speaker": "associate_3",
-        "message": "did anyone restock the front shelves yet?"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
-  },
-  {
-    "incident_id": "inc_34cf02ff",
-    "incident_type": "operational_event",
-    "severity": "medium",
-    "summary": "the locked cabinet still wont open in aisle 4 [Resolved in field: associate_4 @ t=1015: hey i got the cabinet open now]",
-    "status": "resolved",
-    "messages": [
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1004,
-        "speaker": "associate_5",
-        "message": "the locked cabinet still wont open in aisle 4"
-      },
-      {
-        "channel": "retail_store_4",
-        "timestamp": 1015,
-        "speaker": "associate_4",
-        "message": "hey i got the cabinet open now"
-      }
-    ],
-    "tasks": [
-      {
-        "action": "dispatch",
-        "priority": "medium",
-        "parameters": {
-          "role_hint": "floor_associate"
-        }
-      },
-      {
-        "action": "log",
-        "priority": "low",
-        "parameters": {
-          "note": "record_incident"
-        }
-      }
-    ]
+    "tasks": [],
+    "created_at": 1015,
+    "updated_at": 1015
   }
 ]
