@@ -47,6 +47,26 @@ python -m app.main serve --open
 
 (`-o` is a shortcut.) Or open a browser to `http://127.0.0.1:8000/docs` — the app also redirects `http://127.0.0.1:8000/` to `/docs`.
 
+### Ops dashboard (React)
+
+Three-column console UI: message stream, incidents, detail (tasks, summaries, RAG). **Polling** every 1.5s against `GET /dashboard/state` (no WebSocket).
+
+Terminal 1 — API with CORS for Vite:
+
+```bash
+python -m app.main serve
+```
+
+Terminal 2 — frontend:
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open **http://localhost:5173**. Send messages with `POST /ingest` (Swagger at `:8000/docs`, or `curl`) while watching the dashboard update.
+
+Production build: `cd frontend && npm run build`. Optionally set `VITE_API_BASE=http://127.0.0.1:8000` when the UI is hosted separately from the API.
+
 ## Configuration
 
 Variables are read from the environment and optionally from a **`.env`** file in the working directory (`python-dotenv` loads it when you run `app.main`).

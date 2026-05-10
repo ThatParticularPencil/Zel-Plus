@@ -5,9 +5,11 @@ import hashlib
 import json
 import os
 import sys
+import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -20,7 +22,7 @@ from engine.processor import process_message_llm
 from engine.retrieval import format_rag_lines, retrieve_similar_memories
 from engine.summarizer import generate_summary_llm
 from engine.task_generator import generate_tasks_llm
-from models.schemas import ClusterMeta, Incident, MemoryEntry
+from models.schemas import ClusterMeta, Incident, MemoryEntry, ProcessedMessage
 from services.embedding_client import EmbeddingClient
 from services.llm_client import LLMClient
 
@@ -98,6 +100,35 @@ class IncidentEngine:
         self.ingestor = MessageIngestor()
         self.memory_store = MemoryStore(self.storage_dir / "memory_store.json")
         self.incident_store = IncidentStore(self.storage_dir / "incident_store.json")
+        self._dashboard_messages: list[dict[str, Any]] = []
+        self._dashboard_incidents: list[dict[str, Any]] = []
+
+    def _record_dashboard_message(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
+        self._dashboard_messages.append(
+            {
+                "id": str(uuid.uuid4()),
+                "timestamp": buf.message.timestamp,
+                "channel": buf.message.channel,
+                "speaker": buf.message.speaker,
+                "message": buf.message.message,
+                "urgency": processed.urgency,
+                "intent": processed.intent,
+            }
+        )
+        if len(self._dashboard_messages) > 400:
+            self._dashboard_messages = self._dashboard_messages[-400:]
+
+    def _record_dashboard_emits(self, emits: list[IncidentEmit]) -> None:
+        for e in emits:
+            self._dashboard_incidents.append(
+                {
+                    "incident": e.incident.model_dump(),
+                    "manager_summary": e.manager_summary,
+                    "memory_matches": [m.model_dump() for m in e.memory_matches],
+                }
+            )
+        if len(self._dashboard_incidents) > 120:
+            self._dashboard_incidents = self._dashboard_incidents[-120:]
 
     def ingest_message(self, raw: dict) -> BufferedMessage:
         return self.ingestor.ingest_message(raw)
@@ -176,7 +207,9 @@ class IncidentEngine:
         if to_remove:
             self.ingestor.remove_internal_ids(channel, to_remove)
 
+        self._record_dashboard_message(buf, processed)
         self._persist_emits(emits)
+        self._record_dashboard_emits(emits)
 
         return {
             "processed": processed.model_dump(),
@@ -202,6 +235,7 @@ class IncidentEngine:
             if to_remove:
                 self.ingestor.remove_internal_ids(channel, to_remove)
             self._persist_emits(emits)
+            self._record_dashboard_emits(emits)
             all_incidents.extend(
                 {
                     "incident": e.incident.model_dump(),
@@ -248,6 +282,56 @@ def _panel(title: str, body: str) -> None:
     print(f" {title}")
     print("=" * w)
     print(body.rstrip() or "(empty)")
+
+
+def run_inject_cli(args: argparse.Namespace) -> None:
+    """POST messages to a running API (streamlined alternative to curl)."""
+    import httpx
+
+    msg = (args.message or "").strip() or (
+        " ".join(args.ingest_words).strip() if args.ingest_words else ""
+    )
+    url = f"{args.api_url.rstrip('/')}/ingest"
+
+    def post_one(text: str) -> None:
+        payload = {
+            "channel": args.channel,
+            "timestamp": int(time.time()),
+            "speaker": args.speaker,
+            "message": text.strip(),
+        }
+        with httpx.Client(timeout=300.0) as client:
+            r = client.post(url, json=payload)
+        try:
+            r.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            print(e.response.text, file=sys.stderr)
+            raise
+        data = r.json()
+        if args.quiet:
+            print("ok", file=sys.stderr)
+        else:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+
+    if msg:
+        post_one(msg)
+        return
+    if not sys.stdin.isatty():
+        for line in sys.stdin:
+            t = line.strip()
+            if t:
+                post_one(t)
+        return
+    print("inject: type a message, Enter sends, empty line quits", file=sys.stderr)
+    while True:
+        try:
+            line = input("> ")
+        except EOFError:
+            break
+        t = line.strip()
+        if not t:
+            break
+        post_one(t)
 
 
 def run_demo_cli() -> None:
@@ -297,14 +381,33 @@ class IngestBody(BaseModel):
 
 def create_app():
     from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import RedirectResponse
 
     app = FastAPI(title="Incident Intelligence Engine", version="0.1.0")
     engine = IncidentEngine()
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     @app.get("/")
     def root():
         return RedirectResponse(url="/docs", status_code=307)
+
+    @app.get("/dashboard/state")
+    def dashboard_state():
+        return {
+            "messages": engine._dashboard_messages,
+            "incidents": engine._dashboard_incidents,
+        }
 
     @app.post("/ingest")
     def ingest(body: IngestBody):
@@ -342,6 +445,8 @@ def _notify_serve_urls(host: str, port: int, *, open_browser: bool) -> None:
     print(f"    Interactive docs:  {docs}")
     print(f"    ReDoc:             {redoc}")
     print(f"    Root (→ /docs):    {root}")
+    dash = _browser_open_url("127.0.0.1", 5173, "/")
+    print(f"    Dashboard (Vite):  {dash}  (run: cd frontend && npm run dev)\n")
     print("\n  Tip: Cmd+click (Mac) or Ctrl+click (Windows/Linux) the http:// link above.\n")
     if open_browser:
         import threading
@@ -357,7 +462,19 @@ def _notify_serve_urls(host: str, port: int, *, open_browser: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Incident Intelligence Engine")
-    parser.add_argument("mode", choices=["demo", "serve"], nargs="?", default="demo")
+    parser.add_argument(
+        "mode",
+        choices=["demo", "serve", "inject"],
+        nargs="?",
+        default="demo",
+        help="demo=stdin JSON lines; serve=API; inject=POST /ingest client",
+    )
+    parser.add_argument(
+        "ingest_words",
+        nargs="*",
+        default=[],
+        help="inject: message text (joined with spaces); optional if using -m or stdin/REPL",
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument(
@@ -366,12 +483,47 @@ def main() -> None:
         action="store_true",
         help="Open /docs in the default browser (serve mode only)",
     )
+    parser.add_argument(
+        "--api-url",
+        default=os.getenv("IIE_API_URL", "http://127.0.0.1:8000"),
+        help="inject: base URL of running API",
+    )
+    parser.add_argument(
+        "--channel",
+        "-c",
+        default=os.getenv("IIE_INJECT_CHANNEL", "sim_channel"),
+        help="inject: message channel",
+    )
+    parser.add_argument(
+        "--speaker",
+        "-s",
+        default=os.getenv("IIE_INJECT_SPEAKER", "worker_1"),
+        help="inject: speaker id",
+    )
+    parser.add_argument(
+        "-m",
+        "--message",
+        default=None,
+        help="inject: single message body",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="inject: only print ok on success",
+    )
     args = parser.parse_args()
+    if args.mode != "inject" and args.ingest_words:
+        parser.error(
+            f"Unexpected arguments for mode '{args.mode}': {' '.join(args.ingest_words)}"
+        )
     if args.mode == "serve":
         import uvicorn
 
         _notify_serve_urls(args.host, args.port, open_browser=args.open)
         uvicorn.run("app.main:app", host=args.host, port=args.port, reload=False)
+    elif args.mode == "inject":
+        run_inject_cli(args)
     else:
         run_demo_cli()
 
