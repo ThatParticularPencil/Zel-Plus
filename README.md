@@ -1,10 +1,12 @@
 # Zel-Plus: Incident Intelligence Engine
 
-An AI-powered incident detection and operational intelligence system for real-time frontline communication platforms like Zello. This prototype demonstrates how unstructured push-to-talk messages can be transformed into structured operational incidents, reducing cognitive load on dispatch teams and enabling proactive issue detection.
+![dashboad snapshot](https://github.com/ThatParticularPencil/Zel-Plus/blob/main/Demo%20stuff/Screenshot%202026-05-10%20at%209.06.12%E2%80%AFPM.jpg?raw=true)
+
+An AI-powered incident detection and operational intelligence meant to expand on Zello. It's a prototype to demonstrate how unstructured push-to-talk messages can be transformed into structured incidents, reducing cognitive load on dispatch teams and enabling proactive issue detection.
 
 ## Problem Statement
 
-Frontline workers in logistics, retail, and manufacturing rely on push-to-talk communication platforms for coordination. These channels generate high-volume, noisy message streams that are difficult to monitor and act upon. Traditional approaches require manual review of every message, leading to missed issues, delayed responses, and inefficient resource allocation. This system addresses the challenge of converting unstructured voice/text streams into actionable operational intelligence.
+Voice communication channels generate high-volume, noisy message streams that are difficult to monitor and act upon. Traditional approaches require manual review of every message. This system addresses the challenge of converting unstructured voice/text streams into actionable tasks.
 
 ## System Architecture
 
@@ -12,10 +14,10 @@ The pipeline processes incoming messages through a sequential workflow:
 
 1. **Ingestion**: Real-time message buffering with channel-specific queues
 2. **LLM Classification**: Semantic extraction of event type, urgency, topic, and entities
-3. **Incident Routing**: Stateful matching of messages to existing incidents using weighted scoring
+3. **Incident Routing**: Embedding and matching of messages using cosine similarity and heuristics
 4. **Incident Store**: Persistent storage of evolving incident states
 5. **Task Generation**: Optional automated task suggestions for operational response
-6. **Dashboard**: Minimal React frontend for incident monitoring
+6. **Dashboard**: Vibe coded front end for ease of interaction.
 
 ## Core Components
 
@@ -35,18 +37,12 @@ The pipeline processes incoming messages through a sequential workflow:
 
 ## LLM Usage
 
-The system supports multiple LLM providers with automatic fallback:
-
 - **Primary Classification**: Extracts event_type (request/report/update/resolution/noise), urgency (low/medium/high), topic (snake_case operational context), and entities (locations/equipment)
 - **Summarization**: Generates concise incident summaries from message threads
 - **Task Generation**: Suggests operational actions (dispatch, notify, escalate, log)
 - **Fallback Logic**: Rule-based classification when LLM unavailable
 
-Providers: Gemini (default), Groq, OpenAI, Anthropic. Configured via `IIE_LLM_PROVIDER` environment variable.
-
 ## Embeddings & Clustering Strategy
-
-Embeddings serve as tie-breakers in incident routing, not primary matching signals. The router uses explicit rules first:
 
 - Topic/entity overlap (45% weight)
 - Time proximity (25% weight) 
@@ -55,11 +51,11 @@ Embeddings serve as tie-breakers in incident routing, not primary matching signa
 
 This ensures reliable grouping without over-reliance on semantic similarity, which can be noisy in operational contexts.
 
-## How to Run Locally
+## Start
 
 ### Prerequisites
 - Python 3.9+
-- Node.js 18+ (for frontend)
+- Node.js 18+ (only for frontend)
 
 ### Backend Setup
 ```bash
@@ -86,15 +82,10 @@ Access the dashboard at `http://localhost:5173` and API docs at `http://localhos
 Consider a warehouse forklift issue:
 
 1. Initial message: `"forklift stuck at dock 2"` → Creates incident #123 with topic `dock_2_forklift_issue`, urgency `high`
-2. Update message: `"working on it now"` → Routes to #123, updates status to `in_progress`
+2. Update message: `"working on it now"` → Routes to #123, updates summary for new actions
 3. Resolution: `"forklift cleared, back in service"` → Routes to #123, marks `resolved`, generates memory entry
 
-The system maintains incident continuity across the conversation thread, enabling dispatch teams to track issue lifecycle without manual correlation.
+The system maintains incident continuity across the conversation thread, enabling dispatch teams to track the issue lifecycle without manual correlation.
 
-## Future Improvements
-
-- Enhanced clustering with confidence scoring for uncertain matches
-- Evaluation harness for classification accuracy and routing precision  
-- Better embedding models for domain-specific semantic understanding
-- Real-time alerting integrations for critical incidents
-- Historical analytics for operational pattern detection
+I'm currently working on more reliable heuristics and better rules for task making. Obviously, this lacks actual Zello integration, but I can build a simple voice-to-text around it for more functional testing. 
+Also, I'm glad to see that this works with pretty weak AI models with little problem.
