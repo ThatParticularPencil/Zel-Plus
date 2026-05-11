@@ -7,7 +7,7 @@ export interface StreamMessage {
   speaker: string
   message: string
   urgency: string
-  intent: string
+  event_type: string
   topic?: string
   entities?: string[]
 }
@@ -18,19 +18,10 @@ export interface SemanticRow {
   channel: string
   speaker: string
   message: string
-  intent: string
+  event_type: string
   urgency: string
   topic: string
   entities: string[]
-}
-
-export interface ClusterPreviewRow {
-  channel: string
-  cluster_id: string
-  message_count: number
-  emit_ready: boolean
-  messages_needed_for_emit: number
-  min_emit_threshold: number
 }
 
 export interface IncidentPayload {
@@ -70,6 +61,4 @@ export interface DashboardState {
   messages: StreamMessage[]
   semantic: SemanticRow[]
   incidents: IncidentBundle[]
-  cluster_preview: ClusterPreviewRow[]
-  emit_jobs_pending: number
 }

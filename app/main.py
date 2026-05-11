@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -20,8 +19,6 @@ from engine.incident_router import IncidentRouter
 from engine.memory import IncidentStore, MemoryStore
 from engine.message_ingestor import BufferedMessage, MessageIngestor
 from engine.processor import process_message_llm
-from engine.summarizer import generate_summary_llm
-from engine.task_generator import generate_tasks_llm
 from models.schemas import Incident, MemoryEntry, ProcessedMessage
 from services.embedding_client import EmbeddingClient
 from services.llm_client import LLMClient
@@ -35,11 +32,6 @@ def _storage_dir() -> Path:
     return Path(os.getenv("IIE_STORAGE_DIR", str(ROOT / "storage")))
 
 
-def _emit_min_messages() -> int:
-    """Minimum messages in a cluster before creating an incident (tune for batching)."""
-    return max(1, int(os.getenv("IIE_EMIT_MIN_MESSAGES", "2")))
-
-
 def _make_llm() -> Optional[LLMClient]:
     if os.getenv("IIE_OFFLINE", "").lower() in ("1", "true", "yes"):
         return None
@@ -50,25 +42,13 @@ def _make_llm() -> Optional[LLMClient]:
         return None
     if prov == "gemini" and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         return None
+    if prov == "groq" and not os.getenv("GROQ_API_KEY"):
+        return None
     return LLMClient()
 
 
-def _context_signature(channel: str, buffers: list[BufferedMessage]) -> str:
-    topics: list[str] = []
-    ents: list[str] = []
-    for b in buffers:
-        if b.processed:
-            topics.append(b.processed.topic.strip().lower())
-            ents.extend(b.processed.entities)
-    raw = f"{channel}|{sorted(set(topics))}|{sorted(set(ents))}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
-
-
 def _memory_signature_from_incident(incident: Incident) -> str:
-    ch = incident.messages[0].channel if incident.messages else ""
-    raw = f"{ch}|{incident.incident_type}|{incident.summary}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
-
+        return f"{incident.incident_type}\n{incident.summary}\nentities:{','.join(incident.entities)}"
 
 def _resolution_from_tasks(tasks: list[dict]) -> str:
     parts = [str(t.get("action", "")) for t in tasks if t.get("action")]
@@ -105,10 +85,8 @@ class IncidentEngine:
         self.incident_store = IncidentStore(self.storage_dir / "incident_store.json")
         self.router = IncidentRouter(self.incident_store, self.llm, self.embedder)
         self._dashboard_messages: list[dict[str, Any]] = []
-        self._dashboard_incidents: list[dict[str, Any]] = []
+        self._dashboard_incidents: dict[str, dict[str, Any]] = {}
         self._semantic_feed: list[dict[str, Any]] = []
-        self._cluster_preview: list[dict[str, Any]] = []
-        self._emit_jobs_pending = 0
         self._pipeline_lock = threading.Lock()
 
     def _record_semantic(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
@@ -119,7 +97,6 @@ class IncidentEngine:
             "speaker": buf.message.speaker,
             "message": buf.message.message,
             "event_type": processed.event_type,
-            "intent": processed.event_type,
             "urgency": processed.urgency,
             "topic": processed.topic,
             "entities": list(processed.entities),
@@ -139,7 +116,6 @@ class IncidentEngine:
             "message": buf.message.message,
             "urgency": processed.urgency,
             "event_type": processed.event_type,
-            "intent": processed.event_type,
             "topic": processed.topic,
             "entities": list(processed.entities),
         }
@@ -151,15 +127,21 @@ class IncidentEngine:
 
     def _record_dashboard_emits(self, emits: list[IncidentEmit]) -> None:
         for e in emits:
-            self._dashboard_incidents.append(
-                {
-                    "incident": e.incident.model_dump(),
-                    "manager_summary": e.manager_summary,
-                    "memory_matches": [m.model_dump() for m in e.memory_matches],
-                }
-            )
+            self._dashboard_incidents[e.incident.incident_id] = {
+                "incident": e.incident.model_dump(),
+                "manager_summary": e.manager_summary,
+                "memory_matches": [m.model_dump() for m in e.memory_matches],
+            }
         if len(self._dashboard_incidents) > 120:
-            self._dashboard_incidents = self._dashboard_incidents[-120:]
+            # Keep the most recent incidents by updated_at when the dashboard becomes large.
+            ordered = sorted(
+                self._dashboard_incidents.values(),
+                key=lambda item: item["incident"]["updated_at"],
+                reverse=True,
+            )[:120]
+            self._dashboard_incidents = {
+                item["incident"]["incident_id"]: item for item in reversed(ordered)
+            }
 
     def ingest_message(self, raw: dict) -> BufferedMessage:
         return self.ingestor.ingest_message(raw)
@@ -196,7 +178,6 @@ class IncidentEngine:
                 return {
                     "processed": processed.model_dump(),
                     "incidents": [],
-                    "incidents_pending": False,
                 }
 
             self._record_dashboard_emits([emit])
@@ -209,7 +190,6 @@ class IncidentEngine:
                         "memory_matches": [m.model_dump() for m in emit.memory_matches],
                     }
                 ],
-                "incidents_pending": False,
             }
 
     def flush_eof(self) -> dict:
@@ -376,9 +356,10 @@ def create_app():
         return {
             "messages": engine._dashboard_messages,
             "semantic": engine._semantic_feed,
-            "incidents": engine._dashboard_incidents,
-            "cluster_preview": engine._cluster_preview,
-            "emit_jobs_pending": engine._emit_jobs_pending,
+            "incidents": sorted(
+                list(engine._dashboard_incidents.values()),
+                key=lambda item: item["incident"]["updated_at"],
+            ),
         }
 
     @app.post("/ingest")

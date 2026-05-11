@@ -28,7 +28,6 @@ event_type must be EXACTLY one of:
 STRICT RULES:
 - Use "update" ONLY when work is actively being done or progress is being reported.
 - Use "resolution" when the issue is explicitly fixed, cleared, or completed.
-- If unsure between report/update, prefer "report".
 - If the message does not describe an operational state, set event_type = "noise".
 
 ---
@@ -103,9 +102,15 @@ def process_message_llm(
             entities=list(data.get("entities") or []),
             raw_response=data if isinstance(data, dict) else {"response": data},
         )
-    except Exception:
+    except Exception as exc:
         if allow_fallback:
-            return _fallback_processed(message)
+            fallback = _fallback_processed(message)
+            fallback.raw_response = {
+                "fallback": True,
+                "reason": "offline",
+                "error": str(exc),
+            }
+            return fallback
         raise
 
 
@@ -119,10 +124,38 @@ def _fallback_processed(message: Message) -> ProcessedMessage:
             entities=[],
             raw_response={"fallback": True, "reason": "empty_message"},
         )
+
+    if any(w in text for w in ("fixed", "resolved", "cleared", "done", "closed", "repaired")):
+        return ProcessedMessage(
+            event_type="resolution",
+            urgency="medium",
+            topic="unsure",
+            entities=[],
+            raw_response={"fallback": True, "reason": "offline_resolution"},
+        )
+
+    if any(w in text for w in ("dispatch", "dispatched", "assigned", "en route", "on site", "responding", "working", "progress", "ongoing", "still")):
+        return ProcessedMessage(
+            event_type="update",
+            urgency="medium",
+            topic="unsure",
+            entities=[],
+            raw_response={"fallback": True, "reason": "offline_update"},
+        )
+
+    if any(w in text for w in ("help", "need", "please", "urgent", "immediately", "asap", "assist", "support")):
+        return ProcessedMessage(
+            event_type="request",
+            urgency="high",
+            topic="unsure",
+            entities=[],
+            raw_response={"fallback": True, "reason": "offline_request"},
+        )
+
     urgency = "high" if any(w in text for w in ("urgent", "emergency", "now", "immediately")) else "medium"
     return ProcessedMessage(
-        event_type="none",
-        urgency="low",
+        event_type="report",
+        urgency=urgency,
         topic="unsure",
         entities=[],
         raw_response={"fallback": True, "reason": "offline"},

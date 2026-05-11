@@ -13,8 +13,8 @@ def test_fallback_empty_is_noise() -> None:
 def test_fallback_operational_is_report() -> None:
     m = Message(channel="c", timestamp=1, speaker="s", message="help at aisle 4")
     p = _fallback_processed(m)
-    assert p.event_type == "report"
-    assert p.topic == "frontline_message"
+    assert p.event_type == "request"
+    assert p.topic == "unsure"
 
 
 def test_fallback_urgent_keyword() -> None:

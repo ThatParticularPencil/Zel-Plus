@@ -4,7 +4,6 @@ import { IncidentPanel } from './components/IncidentPanel'
 import { InjectBar } from './components/InjectBar'
 import { Layout } from './components/Layout'
 import { MessageFeed } from './components/MessageFeed'
-import { PipelineStrip } from './components/PipelineStrip'
 import { SemanticFeed } from './components/SemanticFeed'
 import { useDashboardPoll } from './hooks/useDashboardPoll'
 import type { IncidentBundle } from './types'
@@ -14,7 +13,19 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const prevIncidentCount = useRef(0)
 
-  const incidents = state.incidents ?? []
+  const incidents = useMemo(() => {
+    if (!state.incidents) return []
+    const seen = new Set<string>()
+    const deduped: typeof state.incidents = []
+    for (const bundle of state.incidents) {
+      const id = bundle.incident.incident_id
+      if (!seen.has(id) && bundle.incident.status !== 'resolved') {
+        seen.add(id)
+        deduped.push(bundle)
+      }
+    }
+    return deduped
+  }, [state.incidents])
 
   useEffect(() => {
     if (incidents.length === 0) {
@@ -70,10 +81,6 @@ export default function App() {
               )}
             </div>
           </header>
-          <PipelineStrip
-            pending={state.emit_jobs_pending}
-            preview={state.cluster_preview}
-          />
         </>
       }
     >

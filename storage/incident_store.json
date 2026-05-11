@@ -1,24 +1,347 @@
 [
   {
-    "incident_id": "e9db0df9-89f8-4213-aece-3105c8ecceed",
-    "incident_type": "dock_2_maintenance_dispatch",
+    "incident_id": "c8ef44f1-f314-42f7-9da6-6cc8353e60e8",
+    "incident_type": "dock_2_hydraulic_leak",
     "severity": "high",
-    "summary": "A high-severity forklift hydraulic leak at dock 2 has blocked the loading lane, halting all pallet movement. A technician has been dispatched, dock 2 operations notified, and the event logged. Planned tasks include escalating to the operations manager if the blockage persists, notifying the logistics team about potential shipment schedule impacts, and resolving the incident once the loading lane is clear. [Resolved in field: worker_6 @ t=1022: hydraulic leak contained and loading lane reopened] [Resolved in field: worker_2 @ t=1026: dock 2 forklift issue resolved now]",
+    "summary": "quick, hydraulic leak on dock 2. I need techs now.",
+    "status": "active",
+    "entities": [
+      "dock 2",
+      "hydraulic leak",
+      "techs"
+    ],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778456537,
+        "speaker": "W4",
+        "message": "quick, hydraulic leak on dock 2. I need techs now."
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "high",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ],
+    "created_at": 1778456537,
+    "updated_at": 1778456537
+  },
+  {
+    "incident_id": "fd667143-f46b-492a-8d9b-3da369472af2",
+    "incident_type": "unsure",
+    "severity": "low",
+    "summary": "The leak is now in dock 1 & 3",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778456577,
+        "speaker": "W1",
+        "message": "The leak is now in dock 1 & 3"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778456588,
+        "speaker": "W1",
+        "message": "hello"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778456616,
+        "speaker": "W1",
+        "message": "Guys, the hydraulic leak has spread to docks 1 and 3"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778456710,
+        "speaker": "W1",
+        "message": "Quick there is a hydraulic leak in dock 1"
+      }
+    ],
+    "tasks": [],
+    "created_at": 1778456577,
+    "updated_at": 1778456710
+  },
+  {
+    "incident_id": "10fec1ad-b3f4-45e8-b6e2-60749d4511b4",
+    "incident_type": "unsure",
+    "severity": "low",
+    "summary": "dock 2 forklift issue resolved now [Resolved in field: worker_2 @ t=1026: dock 2 forklift issue resolved now] [Resolved in field: worker_2 @ t=1026: dock 2 forklift issue resolved now]",
+    "status": "resolved",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1026,
+        "speaker": "worker_2",
+        "message": "dock 2 forklift issue resolved now"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1026,
+        "speaker": "worker_2",
+        "message": "dock 2 forklift issue resolved now"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1026,
+        "speaker": "worker_2",
+        "message": "dock 2 forklift issue resolved now"
+      }
+    ],
+    "tasks": [],
+    "created_at": 1026,
+    "updated_at": 1026
+  },
+  {
+    "incident_id": "84a9a68c-0609-4162-94c4-01cf0fa59afb",
+    "incident_type": "unsure",
+    "severity": "medium",
+    "summary": "hello world",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "c",
+        "timestamp": 10,
+        "speaker": "w",
+        "message": "hello world"
+      },
+      {
+        "channel": "c",
+        "timestamp": 10,
+        "speaker": "w",
+        "message": "hello world"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "medium",
+        "parameters": {
+          "role_hint": "floor_associate"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "record_incident"
+        }
+      }
+    ],
+    "created_at": 10,
+    "updated_at": 10
+  },
+  {
+    "incident_id": "159ddfda-4d01-47d8-b185-bb52bc43939f",
+    "incident_type": "unsure",
+    "severity": "medium",
+    "summary": "hello unsure",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778462278,
+        "speaker": "W1",
+        "message": "hello"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778462330,
+        "speaker": "W1",
+        "message": "hello"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "role_hint": "unsure"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "unsure"
+        }
+      }
+    ],
+    "created_at": 1778462278,
+    "updated_at": 1778462330
+  },
+  {
+    "incident_id": "17a33466-6565-4aac-aba3-a17fc4d737cf",
+    "incident_type": "unsure",
+    "severity": "high",
+    "summary": "forklift blocked in dock 2 needs repair unsure",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1234,
+        "speaker": "tester",
+        "message": "forklift blocked in dock 2 needs repair"
+      },
+      {
+        "channel": "warehouse_ops",
+        "timestamp": 1234,
+        "speaker": "tester",
+        "message": "forklift blocked in dock 2 needs repair"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "role_hint": "unsure"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "unsure"
+        }
+      }
+    ],
+    "created_at": 1234,
+    "updated_at": 1234
+  },
+  {
+    "incident_id": "e351b7af-8ad8-4770-9615-3f95bc10b6d8",
+    "incident_type": "unsure",
+    "severity": "medium",
+    "summary": "hello",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778463490,
+        "speaker": "W1",
+        "message": "hello"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "role_hint": "unsure"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "unsure"
+        }
+      }
+    ],
+    "created_at": 1778463490,
+    "updated_at": 1778463490
+  },
+  {
+    "incident_id": "4b3cfb2a-7025-4060-9606-26c06d859a64",
+    "incident_type": "unsure",
+    "severity": "medium",
+    "summary": "hello world",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "test",
+        "timestamp": 1234,
+        "speaker": "test",
+        "message": "hello world"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "role_hint": "unsure"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "unsure"
+        }
+      }
+    ],
+    "created_at": 1234,
+    "updated_at": 1234
+  },
+  {
+    "incident_id": "ff93527b-59ed-4de0-8598-7d2801d84945",
+    "incident_type": "unsure",
+    "severity": "medium",
+    "summary": "hello",
+    "status": "active",
+    "entities": [],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778464530,
+        "speaker": "W1",
+        "message": "hello"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "role_hint": "unsure"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "note": "unsure"
+        }
+      }
+    ],
+    "created_at": 1778464530,
+    "updated_at": 1778464530
+  },
+  {
+    "incident_id": "90913dde-39af-487a-90aa-677fe42f5955",
+    "incident_type": "dock_2_maintenance",
+    "severity": "high",
+    "summary": "A high-severity incident is currently active at the warehouse, where a forklift has blocked dock 2's loading lane and a possible hydraulic leak has been reported, prompting the maintenance team to be dispatched and all pallet movement near dock 2 to be halted. [Resolved in field: worker_6 @ t=1022: hydraulic leak contained and loading lane reopened] [Resolved in field: worker_2 @ t=1026: dock 2 forklift issue resolved now]",
     "status": "resolved",
     "entities": [
       "dock 2",
       "forklift",
+      "leak",
       "loading lane",
       "maintenance team",
-      "pallet"
+      "warehouse"
     ],
     "messages": [
-      {
-        "channel": "warehouse_ops",
-        "timestamp": 1000,
-        "speaker": "worker_3",
-        "message": "forklift stopped near dock 2"
-      },
       {
         "channel": "warehouse_ops",
         "timestamp": 1000,
@@ -67,25 +390,107 @@
     "updated_at": 1026
   },
   {
-    "incident_id": "2fdc6f24-b2f2-4547-a76c-24f8ab5825aa",
-    "incident_type": "break_room_coffee_machine",
-    "severity": "low",
-    "summary": "The break room coffee machine remains inoperative, a low severity incident that is currently active. No specific tasks have been assigned for resolution at this time.",
-    "status": "active",
+    "incident_id": "29cc082c-12f2-4fa5-aaeb-4690da552b6d",
+    "incident_type": "dest_1_support_request",
+    "severity": "high",
+    "summary": "A high-severity incident has been reported at destination 1 due to a customer complaint, prompting an immediate response from the incident response team, with team members dispatched to assist and the manager notified. [Resolved in field: W1 @ t=1778465029: OK the dest 1 customer is chill now]",
+    "status": "resolved",
     "entities": [
-      "break room",
-      "coffee machine"
+      "customer",
+      "dest 1"
     ],
     "messages": [
       {
-        "channel": "warehouse_ops",
-        "timestamp": 1015,
-        "speaker": "worker_4",
-        "message": "break room coffee machine is still broken lol"
+        "channel": "C1",
+        "timestamp": 1778464867,
+        "speaker": "W1",
+        "message": "I need help with an angry customer at dest 1"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778464956,
+        "speaker": "W2",
+        "message": "Got it, on my way to help dest 1"
+      },
+      {
+        "channel": "C1",
+        "timestamp": 1778465029,
+        "speaker": "W1",
+        "message": "OK the dest 1 customer is chill now"
       }
     ],
-    "tasks": [],
-    "created_at": 1015,
-    "updated_at": 1015
+    "tasks": [
+      {
+        "action": "escalate",
+        "priority": "high",
+        "parameters": {
+          "reason": "repeated issue"
+        }
+      },
+      {
+        "action": "notify",
+        "priority": "high",
+        "parameters": {
+          "manager": "W1",
+          "incident_id": "29cc082c-12f2-4fa5-aaeb-4690da552b6d"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "log_message": "Customer complaint at dest 1"
+        }
+      }
+    ],
+    "created_at": 1778464867,
+    "updated_at": 1778465029
+  },
+  {
+    "incident_id": "391568db-000a-4060-a4a8-058898d74974",
+    "incident_type": "dock_2_hydraulic_leak",
+    "severity": "high",
+    "summary": "A high-severity incident is currently active, involving a hydraulic leak on dock 2, with ongoing issues despite initial reporting.",
+    "status": "active",
+    "entities": [
+      "dock 2",
+      "hydraulic leak"
+    ],
+    "messages": [
+      {
+        "channel": "C1",
+        "timestamp": 1778465089,
+        "speaker": "W1",
+        "message": "That hydraulic leak on dock 2 is still going"
+      }
+    ],
+    "tasks": [
+      {
+        "action": "dispatch",
+        "priority": "high",
+        "parameters": {
+          "team": "maintenance",
+          "location": "dock 2"
+        }
+      },
+      {
+        "action": "notify",
+        "priority": "high",
+        "parameters": {
+          "manager": "W1",
+          "team": "operations"
+        }
+      },
+      {
+        "action": "log",
+        "priority": "low",
+        "parameters": {
+          "incident_id": "391568db-000a-4060-a4a8-058898d74974",
+          "message": "Ongoing issues with hydraulic leak on dock 2"
+        }
+      }
+    ],
+    "created_at": 1778465089,
+    "updated_at": 1778465089
   }
 ]

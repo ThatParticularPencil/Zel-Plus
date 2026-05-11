@@ -5,8 +5,6 @@ const empty: DashboardState = {
   messages: [],
   semantic: [],
   incidents: [],
-  cluster_preview: [],
-  emit_jobs_pending: 0,
 }
 
 function apiBase(): string {
@@ -26,8 +24,6 @@ export function useDashboardPoll(intervalMs = 400) {
         messages: data.messages ?? [],
         semantic: data.semantic ?? [],
         incidents: data.incidents ?? [],
-        cluster_preview: data.cluster_preview ?? [],
-        emit_jobs_pending: data.emit_jobs_pending ?? 0,
       })
       setError(null)
     } catch (e) {

@@ -8,7 +8,6 @@ import pytest
 @pytest.fixture
 def offline_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("IIE_OFFLINE", "1")
-    monkeypatch.setenv("IIE_EMIT_MIN_MESSAGES", "2")
     monkeypatch.setenv("IIE_AUTO_RESOLVE", "false")
 
 
@@ -35,41 +34,43 @@ def test_pipeline_two_messages_one_incident(
     assert len(inc["tasks"]) >= 1
 
 
-def test_emit_min_four_requires_four_messages(
+def test_multiple_messages_append_to_same_incident(
     tmp_path: Path,
     offline_env: None,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("IIE_EMIT_MIN_MESSAGES", "4")
+    monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setenv("IIE_STORAGE_DIR", str(tmp_path))
-    from app.main import IncidentEngine
+    try:
+        from app.main import IncidentEngine
 
-    eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
-    base = {"channel": "s", "speaker": "w", "message": "x"}
-    existing_incident_id = None
-    for i, ts in enumerate([100, 150, 200], start=1):
-        out = eng.process_pipeline(
+        eng = IncidentEngine(storage_dir=tmp_path, auto_resolve=False)
+        base = {"channel": "s", "speaker": "w", "message": "x"}
+        existing_incident_id = None
+        for i, ts in enumerate([100, 150, 200], start=1):
+            out = eng.process_pipeline(
+                {
+                    **base,
+                    "timestamp": ts,
+                    "message": f"freezer alarm on aisle 5 case {i} still acting up",
+                }
+            )
+            assert len(out["incidents"]) == 1
+            if existing_incident_id is None:
+                existing_incident_id = out["incidents"][0]["incident"]["incident_id"]
+            assert out["incidents"][0]["incident"]["incident_id"] == existing_incident_id
+
+        out4 = eng.process_pipeline(
             {
                 **base,
-                "timestamp": ts,
-                "message": f"freezer alarm on aisle 5 case {i} still acting up",
+                "timestamp": 250,
+                "message": "freezer alarm aisle 5 now stable after reset",
             }
         )
-        assert len(out["incidents"]) == 1
-        if existing_incident_id is None:
-            existing_incident_id = out["incidents"][0]["incident"]["incident_id"]
-        assert out["incidents"][0]["incident"]["incident_id"] == existing_incident_id
-
-    out4 = eng.process_pipeline(
-        {
-            **base,
-            "timestamp": 250,
-            "message": "freezer alarm aisle 5 now stable after reset",
-        }
-    )
-    assert len(out4["incidents"]) == 1
-    assert out4["incidents"][0]["incident"]["incident_id"] == existing_incident_id
-    assert len(out4["incidents"][0]["incident"]["messages"]) == 4
+        assert len(out4["incidents"]) == 1
+        assert out4["incidents"][0]["incident"]["incident_id"] == existing_incident_id
+        assert len(out4["incidents"][0]["incident"]["messages"]) == 4
+    finally:
+        monkeypatch.undo()
 
 
 def test_flush_eof_emits_singleton(
@@ -77,7 +78,6 @@ def test_flush_eof_emits_singleton(
     offline_env: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("IIE_EMIT_MIN_MESSAGES", "4")
     monkeypatch.setenv("IIE_STORAGE_DIR", str(tmp_path))
     from app.main import IncidentEngine
 

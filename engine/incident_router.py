@@ -14,7 +14,12 @@ from services.llm_client import LLMClient
 
 
 class IncidentRouter:
-    """Route incoming semantic messages into an evolving incident store."""
+    """Route incoming semantic messages into an evolving incident store.
+
+    Matching is driven by explicit incident_type/topic equality, entity overlap,
+    and recency. Embeddings are used only as a fallback tie-breaker, not the
+    primary matching signal.
+    """
 
     TIME_WINDOW_S = 600
     MATCH_EMBEDDING_THRESHOLD = 0.70
@@ -101,12 +106,10 @@ class IncidentRouter:
         for incident in self.incidents.values():
             if incident.status not in statuses:
                 continue
-            if self._incident_channel(incident) != message.channel:
-                if processed.urgency != "high":
-                    continue
-            if not self._is_candidate(incident, message, processed, message_entities):
+            if self._incident_channel(incident) != message.channel and processed.urgency != "high":
                 continue
-            candidates.append(incident)
+            if self._is_candidate(incident, message, processed, message_entities):
+                candidates.append(incident)
         return candidates
 
     def _is_candidate(
@@ -118,15 +121,15 @@ class IncidentRouter:
     ) -> bool:
         incident_entities = set(incident.entities or [])
         shared_entities = incident_entities.intersection(message_entities)
+        within_window = self._message_within_window(incident, message)
         same_topic = incident.incident_type == processed.topic
-        recent = self._message_within_window(incident, message)
 
-        if same_topic:
-            return recent or bool(shared_entities)
-        if shared_entities and recent:
+        if same_topic and within_window:
             return True
-        if processed.event_type == "resolution" and self._topic_overlap(incident.incident_type, processed.topic):
-            return recent
+        if shared_entities and within_window:
+            return True
+        if processed.event_type == "resolution" and self._topic_overlap(incident.incident_type, processed.topic) and within_window:
+            return True
         if self.embedder is None:
             return False
         return self._embedding_similarity(message, incident) >= self.MATCH_EMBEDDING_THRESHOLD
@@ -170,7 +173,7 @@ class IncidentRouter:
     def _has_strong_hard_signal(self, incident: Incident, message: Message, processed: ProcessedMessage) -> bool:
         incident_entities = set(incident.entities or [])
         shared_entities = incident_entities.intersection(set(processed.entities or []))
-        if incident.incident_type == processed.topic:
+        if incident.incident_type == processed.topic and self._message_within_window(incident, message):
             return True
         if shared_entities and self._message_within_window(incident, message):
             return True

@@ -31,12 +31,6 @@ export function IncidentDetail({ bundle }: { bundle: IncidentBundle | null }) {
           <SummaryBox text={inc.summary} />
         </div>
         <div>
-          <h3 className="mb-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
-            Manager narrative
-          </h3>
-          <SummaryBox text={bundle.manager_summary} />
-        </div>
-        <div>
           <h3 className="mb-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500">Tasks</h3>
           <TaskList incident={inc} />
         </div>

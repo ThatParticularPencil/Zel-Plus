@@ -18,7 +18,7 @@ export function IncidentPanel({
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 py-2">
         {incidents.length === 0 && (
           <p className="px-1 py-6 font-mono text-[12px] text-zinc-600">
-            Incidents appear when the pipeline clusters messages (see IIE_EMIT_MIN_MESSAGES).
+            Incidents appear when messages create or update them immediately.
           </p>
         )}
         {[...incidents].reverse().map((b) => (
