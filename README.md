@@ -2,11 +2,7 @@
 
 ![dashboad snapshot](https://github.com/ThatParticularPencil/Zel-Plus/blob/main/Demo%20stuff/Screenshot%202026-05-10%20at%209.06.12%E2%80%AFPM.jpg?raw=true)
 
-An AI-powered incident detection and operational intelligence meant to expand on Zello. It's a prototype to demonstrate how unstructured push-to-talk messages can be transformed into structured incidents, reducing cognitive load on dispatch teams and enabling proactive issue detection.
-
-## Problem Statement
-
-Voice communication channels generate high-volume, noisy message streams that are difficult to monitor and act upon. Traditional approaches require manual review of every message. This system addresses the challenge of converting unstructured voice/text streams into actionable tasks.
+An AI-powered incident detection and operational intelligence meant to expand on Zello Transcriptions. It's a prototype to demonstrate how unstructured push-to-talk messages can be parsed into structured incidents to reduce cognitive load and enable automatic task handling.
 
 ## System Architecture
 
