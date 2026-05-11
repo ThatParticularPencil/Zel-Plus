@@ -13,8 +13,6 @@ def test_dashboard_state_shape() -> None:
     assert data["messages"] == []
     assert data["semantic"] == []
     assert data["incidents"] == []
-    assert data["cluster_preview"] == []
-    assert data["emit_jobs_pending"] == 0
 
 
 def test_ingest_then_dashboard_feed() -> None:

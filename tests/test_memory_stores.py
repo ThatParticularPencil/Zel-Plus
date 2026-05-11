@@ -32,8 +32,11 @@ def test_incident_store_find_by_id(tmp_path: Path) -> None:
         severity="low",
         summary="s",
         status="active",
+        entities=[],
         messages=[m],
         tasks=[],
+        created_at=1,
+        updated_at=1,
     )
     store.append(inc)
     found = store.find_by_id("inc_test_1")

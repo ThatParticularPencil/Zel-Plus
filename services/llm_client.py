@@ -22,6 +22,7 @@ class LLMClient:
         self.openai_key = os.getenv("OPENAI_API_KEY")
         self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         self.gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        self.groq_key = os.getenv("GROQ_API_KEY")
         self.model = model or os.getenv("IIE_LLM_MODEL") or self._default_model()
         self.timeout_s = timeout_s
 
@@ -30,6 +31,8 @@ class LLMClient:
             return "claude-3-5-sonnet-20241022"
         if self.provider == "gemini":
             return "gemini-2.5-flash-lite"
+        if self.provider == "groq":
+            return "llama3-8b-8192"
         return "gpt-4o-mini"
 
     def complete_text(self, system: str, user: str) -> str:
@@ -57,6 +60,8 @@ class LLMClient:
             return self._anthropic(system, user)
         if self.provider == "gemini":
             return self._gemini(system, user, force_json=force_json)
+        if self.provider == "groq":
+            return self._groq(system, user, force_json=force_json)
         return self._openai(system, user, force_json=force_json)
 
     def _openai(self, system: str, user: str, *, force_json: bool) -> str:
@@ -80,29 +85,26 @@ class LLMClient:
             data = r.json()
         return data["choices"][0]["message"]["content"]
 
-    def _anthropic(self, system: str, user: str) -> str:
-        if not self.anthropic_key:
-            raise RuntimeError("ANTHROPIC_API_KEY not set for Anthropic provider")
-        url = "https://api.anthropic.com/v1/messages"
-        headers = {
-            "x-api-key": self.anthropic_key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        }
-        body = {
+    def _groq(self, system: str, user: str, *, force_json: bool) -> str:
+        if not self.groq_key:
+            raise RuntimeError("GROQ_API_KEY not set for Groq provider")
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        body: dict[str, Any] = {
             "model": self.model,
-            "max_tokens": 4096,
-            "system": system,
-            "messages": [{"role": "user", "content": user}],
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
             "temperature": 0.2,
         }
+        if force_json:
+            body["response_format"] = {"type": "json_object"}
+        headers = {"Authorization": f"Bearer {self.groq_key}", "Content-Type": "application/json"}
         with httpx.Client(timeout=self.timeout_s) as client:
             r = client.post(url, json=body, headers=headers)
             r.raise_for_status()
             data = r.json()
-        parts = data.get("content") or []
-        texts = [p.get("text", "") for p in parts if p.get("type") == "text"]
-        return "".join(texts)
+        return data["choices"][0]["message"]["content"]
 
     def _gemini(self, system: str, user: str, *, force_json: bool) -> str:
         if not self.gemini_key:

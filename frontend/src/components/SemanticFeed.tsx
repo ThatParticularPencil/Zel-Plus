@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { SemanticRow } from '../types'
 
-function intentTone(intent: string): string {
-  if (intent === 'noise') return 'text-zinc-600'
+function eventTone(eventType: string): string {
+  if (eventType === 'noise') return 'text-zinc-600'
   return 'text-sky-600/90'
 }
 
@@ -21,7 +21,7 @@ export function SemanticFeed({ rows }: { rows: SemanticRow[] }) {
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 py-2">
         {rows.length === 0 && (
           <p className="px-1 py-6 font-mono text-[12px] text-zinc-600">
-            Processed intent / topic / entities appear here as soon as each message is ingested.
+            Processed event_type / topic / entities appear here as soon as each message is ingested.
           </p>
         )}
         {rows.map((r) => (
@@ -31,7 +31,7 @@ export function SemanticFeed({ rows }: { rows: SemanticRow[] }) {
           >
             <div className="mb-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
               <span>{r.channel}</span>
-              <span className={intentTone(r.intent)}>intent:{r.intent}</span>
+              <span className={eventTone(r.event_type)}>event:{r.event_type}</span>
               <span className="text-zinc-400">urgency:{r.urgency}</span>
             </div>
             <div className="text-[11px] text-emerald-700/90">topic: {r.topic}</div>

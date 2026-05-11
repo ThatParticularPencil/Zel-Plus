@@ -23,7 +23,7 @@ def test_message_rejects_missing_field() -> None:
 
 def test_processed_message_roundtrip() -> None:
     p = ProcessedMessage(
-        intent="report",
+        event_type="report",
         urgency="high",
         topic="test_topic",
         entities=["aisle_4"],

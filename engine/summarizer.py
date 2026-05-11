@@ -7,8 +7,10 @@ from models.schemas import Incident
 from services.llm_client import LLMClient
 
 
-SUMMARY_SYSTEM = """Write one concise operational paragraph summarizing the incident and planned tasks for a manager.
-Plain text only: no JSON, no markdown headings, no bullet lists."""
+SUMMARY_SYSTEM = """Write one concise operational summary of the incident. 
+Add detail with .md bullet points ONLY IF NECESSARY
+include speaker and channel
+DONT INCLUDE EXTRA INFO LIKE INCIDENT ID"""
 
 
 def generate_summary_llm(
@@ -33,5 +35,5 @@ def generate_summary_llm(
 def _fallback_summary(incident: Incident) -> str:
     parts = [incident.summary]
     if incident.tasks:
-        parts.append("Actions queued for follow-up.")
+        parts.append("unsure")
     return " ".join(parts)

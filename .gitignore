@@ -51,5 +51,5 @@ Thumbs.db
 *.sqlite3
 
 # Uncomment to stop tracking runtime JSON stores (keeps repo templates clean)
-# storage/memory_store.json
-# storage/incident_store.json
+storage/memory_store.json
+storage/incident_store.json

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -16,16 +15,11 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks
 from pydantic import BaseModel
 
-from engine.clustering import cluster_messages
-from engine.incident_builder import build_incident_llm
+from engine.incident_router import IncidentRouter
 from engine.memory import IncidentStore, MemoryStore
 from engine.message_ingestor import BufferedMessage, MessageIngestor
 from engine.processor import process_message_llm
-from engine.resolution_routing import append_resolution_note, should_attempt_resolution_routing
-from engine.retrieval import format_rag_lines, retrieve_similar_memories
-from engine.summarizer import generate_summary_llm
-from engine.task_generator import generate_tasks_llm
-from models.schemas import ClusterMeta, Incident, MemoryEntry, ProcessedMessage
+from models.schemas import Incident, MemoryEntry, ProcessedMessage
 from services.embedding_client import EmbeddingClient
 from services.llm_client import LLMClient
 
@@ -38,11 +32,6 @@ def _storage_dir() -> Path:
     return Path(os.getenv("IIE_STORAGE_DIR", str(ROOT / "storage")))
 
 
-def _emit_min_messages() -> int:
-    """Minimum messages in a cluster before creating an incident (tune for batching)."""
-    return max(1, int(os.getenv("IIE_EMIT_MIN_MESSAGES", "2")))
-
-
 def _make_llm() -> Optional[LLMClient]:
     if os.getenv("IIE_OFFLINE", "").lower() in ("1", "true", "yes"):
         return None
@@ -53,25 +42,13 @@ def _make_llm() -> Optional[LLMClient]:
         return None
     if prov == "gemini" and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         return None
+    if prov == "groq" and not os.getenv("GROQ_API_KEY"):
+        return None
     return LLMClient()
 
 
-def _context_signature(channel: str, buffers: list[BufferedMessage]) -> str:
-    topics: list[str] = []
-    ents: list[str] = []
-    for b in buffers:
-        if b.processed:
-            topics.append(b.processed.topic.strip().lower())
-            ents.extend(b.processed.entities)
-    raw = f"{channel}|{sorted(set(topics))}|{sorted(set(ents))}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
-
-
 def _memory_signature_from_incident(incident: Incident) -> str:
-    ch = incident.messages[0].channel if incident.messages else ""
-    raw = f"{ch}|{incident.incident_type}|{incident.summary}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
-
+        return f"{incident.incident_type}\n{incident.summary}\nentities:{','.join(incident.entities)}"
 
 def _resolution_from_tasks(tasks: list[dict]) -> str:
     parts = [str(t.get("action", "")) for t in tasks if t.get("action")]
@@ -94,7 +71,10 @@ class IncidentEngine:
         *,
         auto_resolve: Optional[bool] = None,
     ) -> None:
-        self.storage_dir = storage_dir or _storage_dir()
+        if storage_dir is None:
+            self.storage_dir = _storage_dir()
+        else:
+            self.storage_dir = Path(storage_dir)
         if auto_resolve is None:
             auto_resolve = os.getenv("IIE_AUTO_RESOLVE", "false").lower() in ("1", "true", "yes")
         self.auto_resolve = auto_resolve
@@ -103,303 +83,117 @@ class IncidentEngine:
         self.ingestor = MessageIngestor()
         self.memory_store = MemoryStore(self.storage_dir / "memory_store.json")
         self.incident_store = IncidentStore(self.storage_dir / "incident_store.json")
+        self.router = IncidentRouter(self.incident_store, self.llm, self.embedder)
         self._dashboard_messages: list[dict[str, Any]] = []
-        self._dashboard_incidents: list[dict[str, Any]] = []
+        self._dashboard_incidents: dict[str, dict[str, Any]] = {}
         self._semantic_feed: list[dict[str, Any]] = []
-        self._cluster_preview: list[dict[str, Any]] = []
         self._pipeline_lock = threading.Lock()
-        self._emit_jobs_pending = 0
 
     def _record_semantic(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
-        self._semantic_feed.append(
-            {
-                "id": str(uuid.uuid4()),
-                "timestamp": buf.message.timestamp,
-                "channel": buf.message.channel,
-                "speaker": buf.message.speaker,
-                "message": buf.message.message,
-                "intent": processed.intent,
-                "urgency": processed.urgency,
-                "topic": processed.topic,
-                "entities": list(processed.entities),
-            }
-        )
+        record = {
+            "id": str(uuid.uuid4()),
+            "timestamp": buf.message.timestamp,
+            "channel": buf.message.channel,
+            "speaker": buf.message.speaker,
+            "message": buf.message.message,
+            "event_type": processed.event_type,
+            "urgency": processed.urgency,
+            "topic": processed.topic,
+            "entities": list(processed.entities),
+        }
+        if processed.raw_response is not None:
+            record["raw_response"] = processed.raw_response
+        self._semantic_feed.append(record)
         if len(self._semantic_feed) > 400:
             self._semantic_feed = self._semantic_feed[-400:]
 
-    def _update_cluster_preview(self, channel: str, clusters: list[ClusterMeta], buffer: list[BufferedMessage]) -> None:
-        min_sz = _emit_min_messages()
-        preview_rows: list[dict[str, Any]] = []
-        for cl in clusters:
-            bufs = [b for b in buffer if b.internal_id in set(cl.message_ids)]
-            n = len(bufs)
-            preview_rows.append(
-                {
-                    "channel": channel,
-                    "cluster_id": cl.incident_id,
-                    "message_count": n,
-                    "emit_ready": n >= min_sz,
-                    "messages_needed_for_emit": max(0, min_sz - n),
-                    "min_emit_threshold": min_sz,
-                }
-            )
-        others = [r for r in self._cluster_preview if r.get("channel") != channel]
-        self._cluster_preview = others + preview_rows
-        if len(self._cluster_preview) > 80:
-            self._cluster_preview = self._cluster_preview[-80:]
-
     def _record_dashboard_message(self, buf: BufferedMessage, processed: ProcessedMessage) -> None:
-        self._dashboard_messages.append(
-            {
-                "id": str(uuid.uuid4()),
-                "timestamp": buf.message.timestamp,
-                "channel": buf.message.channel,
-                "speaker": buf.message.speaker,
-                "message": buf.message.message,
-                "urgency": processed.urgency,
-                "intent": processed.intent,
-                "topic": processed.topic,
-                "entities": list(processed.entities),
-            }
-        )
+        record = {
+            "id": str(uuid.uuid4()),
+            "timestamp": buf.message.timestamp,
+            "channel": buf.message.channel,
+            "speaker": buf.message.speaker,
+            "message": buf.message.message,
+            "urgency": processed.urgency,
+            "event_type": processed.event_type,
+            "topic": processed.topic,
+            "entities": list(processed.entities),
+        }
+        if processed.raw_response is not None:
+            record["raw_response"] = processed.raw_response
+        self._dashboard_messages.append(record)
         if len(self._dashboard_messages) > 400:
             self._dashboard_messages = self._dashboard_messages[-400:]
 
     def _record_dashboard_emits(self, emits: list[IncidentEmit]) -> None:
         for e in emits:
-            self._dashboard_incidents.append(
-                {
-                    "incident": e.incident.model_dump(),
-                    "manager_summary": e.manager_summary,
-                    "memory_matches": [m.model_dump() for m in e.memory_matches],
-                }
-            )
+            self._dashboard_incidents[e.incident.incident_id] = {
+                "incident": e.incident.model_dump(),
+                "manager_summary": e.manager_summary,
+                "memory_matches": [m.model_dump() for m in e.memory_matches],
+            }
         if len(self._dashboard_incidents) > 120:
-            self._dashboard_incidents = self._dashboard_incidents[-120:]
+            # Keep the most recent incidents by updated_at when the dashboard becomes large.
+            ordered = sorted(
+                self._dashboard_incidents.values(),
+                key=lambda item: item["incident"]["updated_at"],
+                reverse=True,
+            )[:120]
+            self._dashboard_incidents = {
+                item["incident"]["incident_id"]: item for item in reversed(ordered)
+            }
 
     def ingest_message(self, raw: dict) -> BufferedMessage:
         return self.ingestor.ingest_message(raw)
 
-    def _emit_clusters(
-        self,
-        channel: str,
-        buffer: list[BufferedMessage],
-        clusters: list[ClusterMeta],
-        *,
-        min_sz: int,
-    ) -> tuple[list[IncidentEmit], set[str]]:
-        emits: list[IncidentEmit] = []
-        to_remove: set[str] = set()
-        for cl in clusters:
-            bufs = [b for b in buffer if b.internal_id in set(cl.message_ids)]
-            if not bufs:
-                continue
-            if len(bufs) < min_sz:
-                continue
-
-            built = build_incident_llm(self.llm, bufs)
-            sig = _context_signature(channel, bufs)
-            memories = self.memory_store.all_entries()
-            matches = retrieve_similar_memories(
-                self.embedder,
-                memories,
-                incident_type=built.incident_type,
-                context_signature=sig,
-                top_k=3,
-            )
-            rag = format_rag_lines(matches)
-
-            inc = Incident(
-                incident_id=cl.incident_id,
-                incident_type=built.incident_type,
-                severity=built.severity,
-                summary=built.summary,
-                status="active",
-                messages=[b.message for b in bufs],
-                tasks=[],
-            )
-            tasks = generate_tasks_llm(
-                self.llm,
-                inc,
-                [b.message for b in bufs],
-                built.severity,
-                rag,
-            )
-            inc.tasks = tasks
-            mgr = generate_summary_llm(self.llm, inc)
-            emits.append(IncidentEmit(incident=inc, manager_summary=mgr, memory_matches=matches))
-            to_remove |= set(cl.message_ids)
-        return emits, to_remove
-
-    def _persist_emits(self, emits: list[IncidentEmit]) -> None:
-        for em in emits:
-            self.incident_store.append(em.incident)
-            if self.auto_resolve:
-                self._resolve_to_memory(em.incident, em.incident.tasks)
-
-    def _finish_emit_phase(self, channel: str) -> None:
-        """Heavy LLM phase: incident build, tasks, summary, persistence (runs after fast HTTP response)."""
-        with self._pipeline_lock:
-            buffer = self.ingestor.buffer_for(channel)
-            if not buffer:
-                return
-            clusters = cluster_messages(buffer, self.embedder)
-            emits, to_remove = self._emit_clusters(
-                channel, buffer, clusters, min_sz=_emit_min_messages()
-            )
-            if to_remove:
-                self.ingestor.remove_internal_ids(channel, to_remove)
-            self._persist_emits(emits)
-            self._record_dashboard_emits(emits)
-            buffer_after = self.ingestor.buffer_for(channel)
-            clusters_after = cluster_messages(buffer_after, self.embedder)
-            self._update_cluster_preview(channel, clusters_after, buffer_after)
-
-    def _resolution_routing_enabled(self) -> bool:
-        return os.getenv("IIE_RESOLUTION_ROUTING", "true").lower() in ("1", "true", "yes")
-
-    def _maybe_route_resolution(
+    def _route_incident(
         self,
         buf: BufferedMessage,
         processed: ProcessedMessage,
-        channel: str,
-    ) -> Optional[dict[str, Any]]:
-        """Attach resolution-style follow-ups to the latest ACTIVE incident, or suppress orphans."""
-        if not self._resolution_routing_enabled():
+    ) -> Optional[IncidentEmit]:
+        incident = self.router.route_message(buf.message, processed)
+        if incident is None:
             return None
-        if not should_attempt_resolution_routing(processed, buf.message.message):
-            return None
-        row = self.incident_store.find_latest_active_for_channel(channel)
-        if not row:
-            self._record_dashboard_message(buf, processed)
-            self._record_semantic(buf, processed)
-            self.ingestor.remove_internal_ids(channel, {buf.internal_id})
-            return {
-                "processed": processed.model_dump(),
-                "incidents": [],
-                "incidents_pending": False,
-                "resolution_orphan": True,
-            }
-        inc = Incident.model_validate(row)
-        updated = inc.model_copy(
-            update={
-                "messages": [*list(inc.messages), buf.message],
-                "summary": append_resolution_note(inc.summary, buf.message),
-            }
+
+        if incident.status == "resolved" and self.auto_resolve:
+            self._resolve_to_memory(incident, list(incident.tasks))
+
+        return IncidentEmit(
+            incident=incident,
+            manager_summary=incident.summary,
+            memory_matches=[],
         )
-        self.incident_store.replace_incident(updated)
-        self._resolve_to_memory(updated, list(updated.tasks))
-        self._record_dashboard_message(buf, processed)
-        self._record_semantic(buf, processed)
-        self.ingestor.remove_internal_ids(channel, {buf.internal_id})
-        self._dashboard_incidents.append(
-            {
-                "incident": updated.model_dump(),
-                "manager_summary": "Field follow-up: incident marked resolved from operational message.",
-                "memory_matches": [],
-            }
-        )
-        if len(self._dashboard_incidents) > 120:
-            self._dashboard_incidents = self._dashboard_incidents[-120:]
-        return {
-            "processed": processed.model_dump(),
-            "incidents": [
-                {
-                    "incident": updated.model_dump(),
-                    "manager_summary": "Field follow-up: incident marked resolved from operational message.",
-                    "memory_matches": [],
-                }
-            ],
-            "incidents_pending": False,
-            "resolution_applied": updated.incident_id,
-        }
 
     def process_pipeline(self, raw: dict, *, background_tasks: Optional[Any] = None) -> dict:
-        """Ingest → semantics → clustering preview. Incident LLMs run in background when background_tasks set."""
+        """Ingest → semantic extraction → incident routing."""
         with self._pipeline_lock:
             buf = self.ingest_message(raw)
             processed = process_message_llm(self.llm, buf.message)
-            channel = buf.channel
-
-            early = self._maybe_route_resolution(buf, processed, channel)
-            if early is not None:
-                return early
-
             self.ingestor.add_to_buffer(buf, processed)
-            buffer = self.ingestor.buffer_for(channel)
-            clusters = cluster_messages(buffer, self.embedder)
-
+            emit = self._route_incident(buf, processed)
             self._record_dashboard_message(buf, processed)
             self._record_semantic(buf, processed)
-            self._update_cluster_preview(channel, clusters, buffer)
 
-            preview_slice = [r for r in self._cluster_preview if r.get("channel") == channel]
-
-            if background_tasks is None:
-                emits, to_remove = self._emit_clusters(
-                    channel, buffer, clusters, min_sz=_emit_min_messages()
-                )
-
-                if to_remove:
-                    self.ingestor.remove_internal_ids(channel, to_remove)
-
-                self._persist_emits(emits)
-                self._record_dashboard_emits(emits)
-                buffer_after = self.ingestor.buffer_for(channel)
-                clusters_after = cluster_messages(buffer_after, self.embedder)
-                self._update_cluster_preview(channel, clusters_after, buffer_after)
-
+            if emit is None:
                 return {
                     "processed": processed.model_dump(),
-                    "incidents": [
-                        {
-                            "incident": e.incident.model_dump(),
-                            "manager_summary": e.manager_summary,
-                            "memory_matches": [m.model_dump() for m in e.memory_matches],
-                        }
-                        for e in emits
-                    ],
-                    "incidents_pending": False,
+                    "incidents": [],
                 }
 
-        if background_tasks is not None:
-            self._emit_jobs_pending += 1
-            background_tasks.add_task(self._finish_emit_phase_wrapped, channel)
+            self._record_dashboard_emits([emit])
             return {
                 "processed": processed.model_dump(),
-                "incidents": [],
-                "incidents_pending": True,
-                "cluster_preview": preview_slice,
+                "incidents": [
+                    {
+                        "incident": emit.incident.model_dump(),
+                        "manager_summary": emit.manager_summary,
+                        "memory_matches": [m.model_dump() for m in emit.memory_matches],
+                    }
+                ],
             }
 
-    def _finish_emit_phase_wrapped(self, channel: str) -> None:
-        try:
-            self._finish_emit_phase(channel)
-        finally:
-            self._emit_jobs_pending = max(0, self._emit_jobs_pending - 1)
-
     def flush_eof(self) -> dict:
-        """Emit remaining clustered messages (min cluster size 1). Used at CLI EOF."""
-        all_incidents: list[dict] = []
-        for channel in self.ingestor.channels():
-            buffer = self.ingestor.buffer_for(channel)
-            if not buffer:
-                continue
-            clusters = cluster_messages(buffer, self.embedder)
-            emits, to_remove = self._emit_clusters(channel, buffer, clusters, min_sz=1)
-            if to_remove:
-                self.ingestor.remove_internal_ids(channel, to_remove)
-            self._persist_emits(emits)
-            self._record_dashboard_emits(emits)
-            all_incidents.extend(
-                {
-                    "incident": e.incident.model_dump(),
-                    "manager_summary": e.manager_summary,
-                    "memory_matches": [m.model_dump() for m in e.memory_matches],
-                }
-                for e in emits
-            )
-        return {"incidents": all_incidents}
+        return {"incidents": []}
 
     def _resolve_to_memory(self, incident: Incident, tasks: list[dict]) -> None:
         incident.status = "resolved"
@@ -562,9 +356,10 @@ def create_app():
         return {
             "messages": engine._dashboard_messages,
             "semantic": engine._semantic_feed,
-            "incidents": engine._dashboard_incidents,
-            "cluster_preview": engine._cluster_preview,
-            "emit_jobs_pending": engine._emit_jobs_pending,
+            "incidents": sorted(
+                list(engine._dashboard_incidents.values()),
+                key=lambda item: item["incident"]["updated_at"],
+            ),
         }
 
     @app.post("/ingest")

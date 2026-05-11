@@ -59,6 +59,9 @@ class IncidentStore:
         rows.append(incident.model_dump())
         self._write(rows)
 
+    def all_incidents(self) -> list[Incident]:
+        return [Incident.model_validate(r) for r in self._read()]
+
     def update_last_status(self, incident_id: str, status: str) -> None:
         rows = self._read()
         for r in reversed(rows):
